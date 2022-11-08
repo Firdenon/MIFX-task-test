@@ -1,18 +1,18 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, StatusBar, useColorScheme, View } from "react-native";
+import { Colors } from "react-native/Libraries/NewAppScreen";
+import ProductList from "./src/views/ProductList";
 
 export default function App() {
+  const isDarkMode = useColorScheme() === "dark";
+  const backgroundStyle = {
+    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  };
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-    </View>
+    <SafeAreaView style={backgroundStyle}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <View style={{ backgroundColor: "#f0f0f0" }}>
+        <ProductList />
+      </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
