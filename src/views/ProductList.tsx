@@ -1,15 +1,62 @@
-import { View, Text, FlatList, StyleSheet } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+} from "react-native";
 import ProductItem from "../components/ProductItem";
 import CategoryItem from "../components/CategoryItem";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Product } from "../shared/model/productModel";
 import { Category } from "../shared/model/categoryModel";
-import DATA_PRODUCT from "../data/product";
-import DATA_CATEGORY from "../data/category";
+import { fetchCategory, fetchProducts } from "../service/https";
 
 const ProductList = () => {
-  const dataProduct: Product[] = DATA_PRODUCT;
-  const dataCategory: Category[] = DATA_CATEGORY;
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [category, setCategory] = useState<Category[]>([]);
+
+  useEffect(() => {
+    onFetch();
+  }, []);
+
+  const onFetch = useCallback(() => {
+    setLoading(true);
+    setError("");
+    Promise.all([fetchCategory(), fetchProducts()])
+      .then((values) => {
+        setCategory(values[0].data);
+        setProducts(values[1].data);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Oops.. Something Went wrong, Please pull to refresh");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const renderError = () => {
+    if (error.length === 0) return null;
+    return (
+      <View style={{ justifyContent: "center", marginTop: 40 }}>
+        <Text
+          style={{
+            textAlign: "center",
+          }}
+        >
+          {error}
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View style={{ height: "100%" }}>
       <View
@@ -51,27 +98,49 @@ const ProductList = () => {
           </View>
         </View>
       </View>
-      <View>
-        <FlatList
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
-          style={{ marginVertical: 10 }}
-          horizontal
-          data={dataCategory}
-          keyExtractor={(item) => item.id}
-          renderItem={(item) => <CategoryItem category={item.item} />}
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color="grey"
+          style={{ height: "80%" }}
         />
-      </View>
-      <FlatList
-        showsVerticalScrollIndicator={false}
-        style={{ height: "100%", paddingHorizontal: 10 }}
-        data={dataProduct}
-        renderItem={(item) => <ProductItem product={item.item} />}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        horizontal={false}
-      />
+      ) : (
+        <View style={{ flex: 1 }}>
+          <View>
+            {category && error.length === 0 ? (
+              <FlatList
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 10 }}
+                style={{ marginVertical: 10 }}
+                horizontal
+                data={category}
+                keyExtractor={(item) => item.id}
+                renderItem={(item) => <CategoryItem category={item.item} />}
+              />
+            ) : (
+              ""
+            )}
+          </View>
+          {products ? (
+            <FlatList
+              showsVerticalScrollIndicator={false}
+              style={{ paddingHorizontal: 10 }}
+              data={products}
+              renderItem={(item) => <ProductItem product={item.item} />}
+              columnWrapperStyle={{ justifyContent: "space-between" }}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              horizontal={false}
+              ListEmptyComponent={renderError}
+              refreshControl={
+                <RefreshControl refreshing={loading} onRefresh={onFetch} />
+              }
+            />
+          ) : (
+            ""
+          )}
+        </View>
+      )}
     </View>
   );
 };
